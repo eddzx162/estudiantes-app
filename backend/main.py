@@ -102,3 +102,7 @@ def delete_student(student_id: int, db: Session = Depends(get_db)):
     db.commit()
 
     return {"message": "Eliminado"}
+
+    @app.get("/ping")
+def ping():
+    return {"mensaje": "pong"}
