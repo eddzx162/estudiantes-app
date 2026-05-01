@@ -1,11 +1,10 @@
 # Estudiantes App
 
-Aplicación web desarrollada con FastAPI (backend) y JavaScript (frontend).
+Aplicación web con autenticación OTP y gestión de estudiantes.
 
 ## Funcionalidades
-- Autenticación con OTP
-- CRUD de estudiantes
-- Despliegue en la nube (Render)
+- Login con OTP
+- CRUD completo de estudiantes
 
 ## Tecnologías
 - FastAPI
@@ -13,6 +12,14 @@ Aplicación web desarrollada con FastAPI (backend) y JavaScript (frontend).
 - HTML/CSS
 - Render
 
-## Enlaces
+## Endpoints principales
+- POST /auth/send-otp
+- POST /auth/verify-otp
+- GET /students
+- POST /students
+- PUT /students/{id}
+- DELETE /students/{id}
+
+## Deploy
 Frontend: https://estudiantes-web-5dj4.onrender.com  
 Backend: https://estudiantes-api-gj4f.onrender.com/docs
