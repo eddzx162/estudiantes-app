@@ -187,3 +187,4 @@ async function eliminar(id) {
     alert("Error eliminando estudiante");
   }
 }
+console.log("Aplicación iniciada correctamente");
