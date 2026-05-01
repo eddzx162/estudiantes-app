@@ -23,3 +23,8 @@ Aplicación web con autenticación OTP y gestión de estudiantes.
 ## Deploy
 Frontend: https://estudiantes-web-5dj4.onrender.com  
 Backend: https://estudiantes-api-gj4f.onrender.com/docs
+## Integrantes
+- Eiver Angulo
+- Eduardo Leyva
+- Jainer Charris
+- Anndy Garcia
