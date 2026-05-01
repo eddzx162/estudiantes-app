@@ -28,3 +28,5 @@ Backend: https://estudiantes-api-gj4f.onrender.com/docs
 - Eduardo Leyva
 - Jainer Charris
 - Anndy Garcia
+### Nota
+Proyecto académico
