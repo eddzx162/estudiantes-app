@@ -1,19 +1,11 @@
-from fastapi import FastAPI, Depends, HTTPException
-from sqlalchemy.orm import Session
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+import sqlite3
 import random
-
-from database import SessionLocal, engine, Base
-import models
-from email_utils import send_email
-
-# Crear tablas
-Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
-# CORS (IMPORTANTE)
-from fastapi.middleware.cors import CORSMiddleware
-
+# CORS (para conectar frontend)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -22,87 +14,75 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Dependencia DB
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# ------------------ DATABASE ------------------
 
-# -----------------------
-# 🔐 AUTH OTP
-# -----------------------
+conn = sqlite3.connect("estudiantes.db", check_same_thread=False)
+cursor = conn.cursor()
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS estudiantes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nombre TEXT,
+    edad INTEGER,
+    nota REAL
+)
+""")
+conn.commit()
+
+# ------------------ OTP ------------------
+
+otp_storage = {}
 
 @app.post("/auth/send-otp")
-def send_otp(email: str, db: Session = Depends(get_db)):
+def send_otp(email: str):
     otp = str(random.randint(100000, 999999))
-
-    user = db.query(models.User).filter(models.User.email == email).first()
-
-    if not user:
-        user = models.User(email=email, otp=otp)
-        db.add(user)
-    else:
-        user.otp = otp
-
-    db.commit()
-
-    send_email(email, otp)
-
+    otp_storage[email] = otp
+    print(f"OTP para {email}: {otp}")
     return {"message": "OTP enviado"}
 
 @app.post("/auth/verify-otp")
-def verify_otp(email: str, otp: str, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.email == email).first()
+def verify_otp(email: str, otp: str):
+    if otp_storage.get(email) == otp:
+        return {"message": "Autenticación exitosa"}
+    return {"message": "OTP incorrecto"}
 
-    if not user or user.otp != otp:
-        raise HTTPException(status_code=400, detail="OTP incorrecto")
-
-    return {"message": "Autenticado correctamente"}
-
-# -----------------------
-# 👨‍🎓 CRUD STUDENTS
-# -----------------------
+# ------------------ CRUD ------------------
 
 @app.get("/students")
-def get_students(db: Session = Depends(get_db)):
-    return db.query(models.Student).all()
+def get_students():
+    cursor.execute("SELECT * FROM estudiantes")
+    rows = cursor.fetchall()
+    return [
+        {"id": r[0], "nombre": r[1], "edad": r[2], "nota": r[3]}
+        for r in rows
+    ]
 
 @app.post("/students")
-def create_student(nombre: str, edad: int, nota: int, db: Session = Depends(get_db)):
-    student = models.Student(nombre=nombre, edad=edad, nota=nota)
-    db.add(student)
-    db.commit()
-    db.refresh(student)
-    return student
+def create_student(nombre: str, edad: int, nota: float):
+    cursor.execute(
+        "INSERT INTO estudiantes (nombre, edad, nota) VALUES (?, ?, ?)",
+        (nombre, edad, nota)
+    )
+    conn.commit()
+    return {"message": "Estudiante creado"}
 
-@app.put("/students/{student_id}")
-def update_student(student_id: int, nombre: str, edad: int, nota: int, db: Session = Depends(get_db)):
-    student = db.query(models.Student).filter(models.Student.id == student_id).first()
+@app.put("/students/{id}")
+def update_student(id: int, nombre: str, edad: int, nota: float):
+    cursor.execute(
+        "UPDATE estudiantes SET nombre=?, edad=?, nota=? WHERE id=?",
+        (nombre, edad, nota, id)
+    )
+    conn.commit()
+    return {"message": "Estudiante actualizado"}
 
-    if not student:
-        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+@app.delete("/students/{id}")
+def delete_student(id: int):
+    cursor.execute("DELETE FROM estudiantes WHERE id=?", (id,))
+    conn.commit()
+    return {"message": "Estudiante eliminado"}
 
-    student.nombre = nombre
-    student.edad = edad
-    student.nota = nota
+# ------------------ TEST ------------------
 
-    db.commit()
-    return student
-
-@app.delete("/students/{student_id}")
-def delete_student(student_id: int, db: Session = Depends(get_db)):
-    student = db.query(models.Student).filter(models.Student.id == student_id).first()
-
-    if not student:
-        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
-
-    db.delete(student)
-    db.commit()
-
-    return {"message": "Eliminado"}
-
-    @app.get("/ping")
-def ping():
-    return {"mensaje": "pong"}
+@app.get("/")
+def root():
+    return {"mensaje": "API funcionando correctamente"}
