@@ -1,10 +1,17 @@
-const API = "https://estudiantes-api-gj4f.onrender.com"; 
+const API = "https://estudiantes-api-gj4f.onrender.com";
 
 let emailGlobal = "";
+let estudianteEditando = null;
 
 // 🔐 Enviar OTP
 async function sendOTP() {
   const email = document.getElementById("email").value;
+
+  if (!email) {
+    alert("Ingresa un correo");
+    return;
+  }
+
   emailGlobal = email;
 
   try {
@@ -27,6 +34,11 @@ async function sendOTP() {
 // 🔐 Verificar OTP
 async function verifyOTP() {
   const otp = document.getElementById("otpInput").value;
+
+  if (!otp) {
+    alert("Ingresa el OTP");
+    return;
+  }
 
   try {
     const res = await fetch(`${API}/auth/verify-otp?email=${emailGlobal}&otp=${otp}`, {
@@ -87,6 +99,10 @@ async function crearEstudiante() {
       method: "POST"
     });
 
+    document.getElementById("nombre").value = "";
+    document.getElementById("edad").value = "";
+    document.getElementById("nota").value = "";
+
     cargarEstudiantes();
   } catch (error) {
     console.error(error);
@@ -94,19 +110,39 @@ async function crearEstudiante() {
   }
 }
 
-// ✏️ Editar estudiante
-async function editar(id, nombre, edad, nota) {
-  const nuevoNombre = prompt("Nuevo nombre:", nombre);
-  const nuevaEdad = prompt("Nueva edad:", edad);
-  const nuevaNota = prompt("Nueva nota:", nota);
+// ✏️ Abrir modal de edición
+function editar(id, nombre, edad, nota) {
+  estudianteEditando = id;
 
-  if (!nuevoNombre || !nuevaEdad || !nuevaNota) return;
+  document.getElementById("editNombre").value = nombre;
+  document.getElementById("editEdad").value = edad;
+  document.getElementById("editNota").value = nota;
+
+  document.getElementById("modal").style.display = "flex";
+}
+
+// ❌ Cerrar modal
+function cerrarModal() {
+  document.getElementById("modal").style.display = "none";
+}
+
+// 💾 Guardar edición
+async function guardarEdicion() {
+  const nombre = document.getElementById("editNombre").value;
+  const edad = document.getElementById("editEdad").value;
+  const nota = document.getElementById("editNota").value;
+
+  if (!nombre || !edad || !nota) {
+    alert("Completa todos los campos");
+    return;
+  }
 
   try {
-    await fetch(`${API}/students/${id}?nombre=${nuevoNombre}&edad=${nuevaEdad}&nota=${nuevaNota}`, {
+    await fetch(`${API}/students/${estudianteEditando}?nombre=${nombre}&edad=${edad}&nota=${nota}`, {
       method: "PUT"
     });
 
+    cerrarModal();
     cargarEstudiantes();
   } catch (error) {
     console.error(error);
@@ -114,7 +150,7 @@ async function editar(id, nombre, edad, nota) {
   }
 }
 
-// ❌ Eliminar estudiante
+// 🗑️ Eliminar estudiante
 async function eliminar(id) {
   try {
     await fetch(`${API}/students/${id}`, {

@@ -34,5 +34,17 @@
 </div>
 
 <script src="script.js"></script>
+<div id="modal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="cerrarModal()">&times;</span>
+    <h3>Editar Estudiante</h3>
+
+    <input id="editNombre" placeholder="Nombre">
+    <input id="editEdad" placeholder="Edad" type="number">
+    <input id="editNota" placeholder="Nota" type="number">
+
+    <button onclick="guardarEdicion()">Guardar cambios</button>
+  </div>
+</div>
 </body>
 </html>
