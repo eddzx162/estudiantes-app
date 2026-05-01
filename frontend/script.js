@@ -7,12 +7,14 @@ let estudianteEditando = null;
 async function sendOTP() {
   const email = document.getElementById("email").value;
 
-  if (!email) {
-    alert("Ingresa un correo");
+  if (!email || !email.includes("@")) {
+    alert("Ingresa un correo válido");
     return;
   }
 
   emailGlobal = email;
+
+  alert("Enviando OTP...");
 
   try {
     const res = await fetch(`${API}/auth/send-otp?email=${email}`, {
@@ -35,8 +37,8 @@ async function sendOTP() {
 async function verifyOTP() {
   const otp = document.getElementById("otpInput").value;
 
-  if (!otp) {
-    alert("Ingresa el OTP");
+  if (!otp || otp.length < 4) {
+    alert("OTP inválido");
     return;
   }
 
@@ -70,7 +72,7 @@ async function cargarEstudiantes() {
     data.forEach(e => {
       const li = document.createElement("li");
       li.innerHTML = `
-        ${e.nombre} - ${e.edad} - ${e.nota}
+        ${e.nombre} - ${e.edad} años - Nota: ${e.nota}
         <button onclick="editar(${e.id}, '${e.nombre}', ${e.edad}, ${e.nota})">Editar</button>
         <button onclick="eliminar(${e.id})">Eliminar</button>
       `;
@@ -86,11 +88,21 @@ async function cargarEstudiantes() {
 // ➕ Crear estudiante
 async function crearEstudiante() {
   const nombre = document.getElementById("nombre").value;
-  const edad = document.getElementById("edad").value;
-  const nota = document.getElementById("nota").value;
+  const edad = parseInt(document.getElementById("edad").value);
+  const nota = parseFloat(document.getElementById("nota").value);
 
-  if (!nombre || !edad || !nota) {
-    alert("Completa todos los campos");
+  if (!nombre) {
+    alert("El nombre es obligatorio");
+    return;
+  }
+
+  if (isNaN(edad) || edad <= 0) {
+    alert("Edad inválida");
+    return;
+  }
+
+  if (isNaN(nota) || nota < 0 || nota > 5) {
+    alert("La nota debe estar entre 0 y 5");
     return;
   }
 
@@ -110,7 +122,7 @@ async function crearEstudiante() {
   }
 }
 
-// ✏️ Abrir modal de edición
+// ✏️ Abrir modal
 function editar(id, nombre, edad, nota) {
   estudianteEditando = id;
 
@@ -126,14 +138,24 @@ function cerrarModal() {
   document.getElementById("modal").style.display = "none";
 }
 
-// 💾 Guardar edición
+// 💾 Guardar cambios
 async function guardarEdicion() {
   const nombre = document.getElementById("editNombre").value;
-  const edad = document.getElementById("editEdad").value;
-  const nota = document.getElementById("editNota").value;
+  const edad = parseInt(document.getElementById("editEdad").value);
+  const nota = parseFloat(document.getElementById("editNota").value);
 
-  if (!nombre || !edad || !nota) {
-    alert("Completa todos los campos");
+  if (!nombre) {
+    alert("Nombre obligatorio");
+    return;
+  }
+
+  if (isNaN(edad) || edad <= 0) {
+    alert("Edad inválida");
+    return;
+  }
+
+  if (isNaN(nota) || nota < 0 || nota > 5) {
+    alert("Nota inválida (0 - 5)");
     return;
   }
 
@@ -150,8 +172,10 @@ async function guardarEdicion() {
   }
 }
 
-// 🗑️ Eliminar estudiante
+// 🗑️ Eliminar
 async function eliminar(id) {
+  if (!confirm("¿Seguro que quieres eliminar este estudiante?")) return;
+
   try {
     await fetch(`${API}/students/${id}`, {
       method: "DELETE"
