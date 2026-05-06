@@ -37,7 +37,7 @@ otp_storage = {}
 def send_otp(email: str):
     otp = str(random.randint(100000, 999999))
     otp_storage[email] = otp
-    print(f"OTP para {email}: {otp}")
+    print(f"OTP para {email}: {otp}", flush=True)
     return {"message": "OTP enviado"}
 
 @app.post("/auth/verify-otp")
