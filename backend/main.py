@@ -2,13 +2,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import sqlite3
 import random
-import smtplib
-from email.mime.text import MIMEText
+import requests
+import os
 
 app = FastAPI()
 
-# ------------------ CORS ------------------
-
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -36,25 +35,27 @@ conn.commit()
 
 otp_storage = {}
 
-
-EMAIL_REMITENTE = "eddzxlmgmail.com"
-EMAIL_PASSWORD = "fbdq iazz vcjz dhhd"  
-
 def enviar_email(destinatario, otp):
-    mensaje = MIMEText(f"Tu código OTP es: {otp}")
-    mensaje["Subject"] = "Código OTP"
-    mensaje["From"] = EMAIL_REMITENTE
-    mensaje["To"] = destinatario
+    url = "https://api.resend.com/emails"
+
+    headers = {
+        "Authorization": "Bearer re_BJkDBrQA_2jhJ8EqyZDMyUsmarB1PLfvz",
+        "Content-Type": "application/json"
+    }
+
+    data = {
+        "from": "onboarding@resend.dev",
+        "to": [destinatario],
+        "subject": "Código OTP",
+        "html": f"<h2>Tu código OTP es: {otp}</h2>"
+    }
 
     try:
-        servidor = smtplib.SMTP("smtp.gmail.com", 587)
-        servidor.starttls()
-        servidor.login(EMAIL_REMITENTE, EMAIL_PASSWORD)
-        servidor.send_message(mensaje)
-        servidor.quit()
-        print(f"OTP enviado a {destinatario}", flush=True)
+        response = requests.post(url, json=data, headers=headers)
+        print("RESPUESTA EMAIL:", response.text, flush=True)
     except Exception as e:
         print("Error enviando correo:", e, flush=True)
+
 
 @app.post("/auth/send-otp")
 def send_otp(email: str):
@@ -64,6 +65,7 @@ def send_otp(email: str):
     enviar_email(email, otp)
 
     return {"message": "OTP enviado al correo"}
+
 
 @app.post("/auth/verify-otp")
 def verify_otp(email: str, otp: str):
