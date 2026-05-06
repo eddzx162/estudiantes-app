@@ -2,10 +2,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import sqlite3
 import random
+import smtplib
+from email.mime.text import MIMEText
 
 app = FastAPI()
 
-# CORS (para conectar frontend)
+# ------------------ CORS ------------------
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -33,12 +36,34 @@ conn.commit()
 
 otp_storage = {}
 
+
+EMAIL_REMITENTE = "eddzxlmgmail.com"
+EMAIL_PASSWORD = "fbdq iazz vcjz dhhd"  
+
+def enviar_email(destinatario, otp):
+    mensaje = MIMEText(f"Tu código OTP es: {otp}")
+    mensaje["Subject"] = "Código OTP"
+    mensaje["From"] = EMAIL_REMITENTE
+    mensaje["To"] = destinatario
+
+    try:
+        servidor = smtplib.SMTP("smtp.gmail.com", 587)
+        servidor.starttls()
+        servidor.login(EMAIL_REMITENTE, EMAIL_PASSWORD)
+        servidor.send_message(mensaje)
+        servidor.quit()
+        print(f"OTP enviado a {destinatario}", flush=True)
+    except Exception as e:
+        print("Error enviando correo:", e, flush=True)
+
 @app.post("/auth/send-otp")
 def send_otp(email: str):
     otp = str(random.randint(100000, 999999))
     otp_storage[email] = otp
-    print(f"OTP para {email}: {otp}", flush=True)
-    return {"message": "OTP enviado"}
+
+    enviar_email(email, otp)
+
+    return {"message": "OTP enviado al correo"}
 
 @app.post("/auth/verify-otp")
 def verify_otp(email: str, otp: str):
