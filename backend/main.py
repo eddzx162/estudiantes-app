@@ -1,12 +1,11 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import random
-import smtplib
-from email.mime.text import MIMEText
+import requests
 
 app = FastAPI()
 
-# CORS (para pruebas)
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -15,58 +14,51 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# CONFIGURACIÓN GMAIL
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 587
-EMAIL = "TU_CORREO@gmail.com"
-PASSWORD = "TU_APP_PASSWORD"
+# 🔑 API KEY SENDA SERVICE
+SENDA_API_KEY = "TU_API_KEY_AQUI"
 
-# Guardar OTP temporal
+# Guardar OTP
 otp_storage = {}
 
-# Ruta base
+# ------------------ ROOT ------------------
 @app.get("/")
 def home():
     return {"mensaje": "API funcionando correctamente"}
 
-# Enviar OTP
+# ------------------ ENVIAR OTP ------------------
 @app.post("/auth/send-otp")
 def send_otp(email: str):
+    otp = str(random.randint(100000, 999999))
+    otp_storage[email] = otp
+
     try:
-        otp = str(random.randint(100000, 999999))
-        otp_storage[email] = otp
-
-        mensaje = MIMEText(f"Tu código OTP es: {otp}")
-        mensaje["Subject"] = "Código de verificación"
-        mensaje["From"] = EMAIL
-        mensaje["To"] = email
-
-        print("📧 Intentando enviar OTP a:", email)
-
-        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=10)
-        server.ehlo()
-        server.starttls()
-        server.ehlo()
-        server.login(EMAIL, PASSWORD)
-
-        server.sendmail(
-            EMAIL,
-            email,
-            mensaje.as_string()
+        response = requests.post(
+            "https://api.senda-service.com/v1/email/send",
+            headers={
+                "Authorization": f"Bearer {SENDA_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "from": "no-reply@senda-service.com",
+                "to": email,
+                "subject": "Código OTP",
+                "html": f"<h2>Tu código OTP es: {otp}</h2>"
+            }
         )
 
-        server.quit()
+        print("Respuesta Senda:", response.text)
 
-        print("✅ OTP enviado:", otp)
+        if response.status_code != 200:
+            raise Exception(response.text)
 
         return {"mensaje": "OTP enviado correctamente"}
 
     except Exception as e:
-        print("❌ ERROR SMTP:", str(e))
+        print("❌ ERROR SENDA:", str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# Verificar OTP
+# ------------------ VERIFICAR OTP ------------------
 @app.post("/auth/verify-otp")
 def verify_otp(email: str, otp: str):
     if email in otp_storage and otp_storage[email] == otp:
